@@ -14,6 +14,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
+import study.datajpa.entity.Team;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Rollback(false)
 class MemberRepositoryTest {
     @Autowired MemberRepository memberRepository;
+    @Autowired TeamRepository teamRepository;
     @PersistenceContext
     EntityManager em;
 
@@ -90,5 +92,34 @@ class MemberRepositoryTest {
 
         // then
         AssertionsForClassTypes.assertThat(resultCount).isEqualTo(3);
+    }
+
+    @Test
+    public void findMemberLazy() {
+        // given
+        // member1 -> teamA
+        // member2 -> teamB
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+        Member member1 = new Member("member1", 10, teamA);
+        Member member2 = new Member("member2", 10, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        em.flush();
+        em.clear();
+
+        // when
+        // N(리스트 결과값의 개수) + 1 문제 => fetch join 을 통해 해결 => fetch join 작성을 @EntityGraph(attributePath = {"조인할 객체"}) 로 해결 가능
+        // select member 1
+        List<Member> members = memberRepository.findAll();
+        // List<Member> members = memberRepository.findMemberFetchJoin();
+
+        for (Member member : members) {
+            System.out.println("member = " + member.getUsername());
+            System.out.println("member.team = " + member.getTeam().getName()); // 지연 로딩이라 가짜 객체만 가져옴. Team 의 getName()을 호출한 시점에서 정보가 없으므로 쿼리를 생성함
+        }
     }
 }
