@@ -122,4 +122,19 @@ class MemberRepositoryTest {
             System.out.println("member.team = " + member.getTeam().getName()); // 지연 로딩이라 가짜 객체만 가져옴. Team 의 getName()을 호출한 시점에서 정보가 없으므로 쿼리를 생성함
         }
     }
+
+    @Test
+    public void queryHint() {
+        // given
+        Member member1 = memberRepository.save(new Member("member1", 10));
+        em.flush();
+        em.clear();
+
+        // when
+        Member findMember = memberRepository.findReadOnlyByUsername("member1");
+        findMember.setUsername("member2");
+//        findMember.setUsername("member2");
+
+        em.flush();
+    }
 }
